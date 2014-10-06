@@ -1,4 +1,4 @@
-<% if product.master.msrp.present? %>
+<% if product.master.msrp.present? && discount_percentage(product) != '0%' %>
   <span class="list-price">
     <strong>
       <span class="line-through">
@@ -15,7 +15,7 @@
   </span>
 </span>
 
-<% if product.master.msrp.present? %>
+<% if product.master.msrp.present? && discount_percentage(product) != '0%' %>
   <span class="save-percent">
     Save <%= discount_percentage(product) %>
   </span>
