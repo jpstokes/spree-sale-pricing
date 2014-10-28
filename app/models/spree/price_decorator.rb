@@ -1,21 +1,18 @@
 Spree::Price.class_eval do
-
   has_many :sale_prices
-  
-  def put_on_sale value, params={}
-    new_sale(value, params).save
+
+  # TODO also accept a class reference for calculator type instead of only a string
+  def put_on_sale(value, calculator_type = "Spree::Calculator::DollarAmountSalePriceCalculator", start_at = Time.now, end_at = nil, enabled = true)
+    new_sale(value, calculator_type, start_at, end_at, enabled).save
   end
+  alias :create_sale :put_on_sale
 
-  def new_sale value, params={}
-    calculator_type = params[:calculator_type] || Spree::Calculator::DollarAmountSalePriceCalculator.new
-    start_at = params[:start_at] || Time.now
-    end_at = params[:end_at] || nil
-    enabled = params[:enabled] || true
-
-    sale_price = sale_prices.new({ value: value, start_at: start_at, end_at: end_at, enabled: enabled, calculator: calculator_type })
+  def new_sale(value, calculator_type = "Spree::Calculator::DollarAmountSalePriceCalculator", start_at = Time.now, end_at = nil, enabled = true)
+    sale_price = sale_prices.new({ value: value, start_at: start_at, end_at: end_at, enabled: enabled })
+    sale_price.calculator_type = calculator_type
     sale_price
   end
-  
+
   # TODO make update_sale method
 
   def active_sale
@@ -31,7 +28,7 @@ Spree::Price.class_eval do
   def sale_price
     on_sale? ? active_sale.price : nil
   end
-  
+
   def sale_price=(value)
     on_sale? ? active_sale.update_attribute(:value, value) : put_on_sale(value)
   end
@@ -47,18 +44,28 @@ Spree::Price.class_eval do
   def original_price
     self[:amount]
   end
-  
+
   def original_price=(value)
     self.price = value
   end
-  
+
   def price
     on_sale? ? sale_price : original_price
   end
-  
+
   def amount
     price
   end
+
+
+
+  def display_original_price
+    Spree::Money.new(self[:amount] || 0, { currency: currency })
+  end
+  def display_sale_price
+    Spree::Money.new(amount || 0, { currency: currency })
+  end
+
 
   def enable_sale
     return nil unless next_active_sale.present?
@@ -79,9 +86,9 @@ Spree::Price.class_eval do
     return nil unless active_sale.present?
     active_sale.stop
   end
-  
-  private 
-  
+
+  private
+
   def first_sale(scope)
     scope.order("created_at DESC").first
   end
