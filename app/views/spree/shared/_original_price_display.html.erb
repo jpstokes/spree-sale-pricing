@@ -1,22 +1,16 @@
-<% if product.master.msrp.present? %>
-  <span class="list-price">
-    <strong>
-      <span class="line-through">
-      <%= number_to_currency(product.master.msrp) %>
-      </span>
-      &nbsp;
-    </strong>
+<% if product.master.msrp.present? && discount_percentage(product) != '0%' %>
+  <span class="line-through"><strong><%= number_to_currency(product.master.msrp) %></strong></span>
   </span>
-<% end %>
-
-<span class="sale-price">
-  <span class="price selling" itemprop="price">
-    <strong><%= display_price(product) %></strong>
+  <span class="sale-price">
+    <span class="price selling" itemprop="price">
+      <strong><%= display_price(product) %></strong>
+    </span>
   </span>
-</span>
-
-<% if product.master.msrp.present? %>
   <span class="save-percent">
     Save <%= discount_percentage(product) %>
+  </span>
+<% else %>
+  <span class="list-price">
+    <strong><%= display_price(product) %></strong>
   </span>
 <% end %>

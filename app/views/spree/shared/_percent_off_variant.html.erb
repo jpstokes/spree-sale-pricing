@@ -1,0 +1,7 @@
+<% if variant.msrp.present? && discount_percentage_variant(variant) != '0%' %>
+  <div class="cart-item-discount">
+    <span class="save-percent">
+      <span><%= Spree.t(:save) %></span>
+      <%= discount_percentage_variant(variant) %>
+  </div>
+<% end %>
