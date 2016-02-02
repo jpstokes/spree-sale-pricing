@@ -1,0 +1,6 @@
+<% if variant.msrp.present? && discount_percentage_variant(variant) != '0' %>
+  <span class="option-value-list-price"><strong><%= number_to_currency(variant.msrp) %></strong></span>
+  <span class="price sale-price"><strong><%= display_price(variant) %></strong></span>
+<% else %>
+  <span class="price"><strong><%= display_price(variant) %></strong></span>
+<% end %>
