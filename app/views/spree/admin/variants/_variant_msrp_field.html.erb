@@ -1,0 +1,4 @@
+<div class="field" data-hook="msrp">
+  <%= f.label :msrp, Spree.t(:msrp) %>
+  <%= f.text_field :msrp, :value => number_to_currency(@variant.msrp, :unit => ''), :class => 'fullwidth' %>
+</div>

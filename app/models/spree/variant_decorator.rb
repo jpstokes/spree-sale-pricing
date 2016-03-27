@@ -2,11 +2,12 @@ Spree::Variant.class_eval do
 
   has_many :sale_prices, through: :prices
 
-  delegate_belongs_to :default_price, :sale_price, :original_price, :on_sale?
+  delegate_belongs_to :default_price, :sale_price, :original_price, :on_sale?,
+                      :display_original_price, :display_sale_price
 
-  def put_on_sale value, params={}
-    all_currencies = params[:all_variants] || true    
-    run_on_prices(all_currencies) { |p| p.put_on_sale value, params }
+  # TODO also accept a class reference for calculator type instead of only a string
+  def put_on_sale(value, start_at = Time.now, end_at = nil, enabled = true, all_currencies = true, calculator_type = "Spree::Calculator::DollarAmountSalePriceCalculator")
+    run_on_prices(all_currencies) { |p| p.put_on_sale value, calculator_type, start_at, end_at, enabled }
   end
   alias :create_sale :put_on_sale
 
@@ -25,11 +26,32 @@ Spree::Variant.class_eval do
   def sale_price_in(currency)
     Spree::Price.new variant_id: self.id, currency: currency, amount: price_in(currency).sale_price
   end
-  
+
+  # Returns true if the product is discounted by an amount that rounds to at least 1%
+  def discounted?
+    begin
+      price = self.price.respond_to?(:to_f) ? self.price.to_f : self.price.amount.to_f
+      msrp = self.msrp.try(:to_f)
+
+      msrp && self.price && ((1 - price / msrp) * 100).round > 0
+    rescue
+      false
+    end
+  end
+
   def discount_percent_in(currency)
     price_in(currency).discount_percent
   end
-  
+
+  # Returns a String with the discounted percentage between #price and #msrp.
+  def display_discount
+    if discounted?
+      "#{((1 - price / msrp) * 100).round}"
+    else
+      '0'
+    end
+  end
+
   def on_sale_in?(currency)
     price_in(currency).on_sale?
   end
@@ -53,14 +75,14 @@ Spree::Variant.class_eval do
   def stop_sale(all_currencies=true)
     run_on_prices(all_currencies) { |p| p.stop_sale }
   end
-  
+
   private
-   
+
   def run_on_prices(all_currencies, &block)
     if all_currencies && prices.present?
       prices.each { |p| block.call p }
     else
-      block.call default_price  
+      block.call default_price
     end
   end
 end

@@ -1,15 +1,18 @@
 module Spree
   class SalePrice < ActiveRecord::Base
-
     # TODO validations
     belongs_to :price, :class_name => "Spree::Price"
     has_one :calculator, :class_name => "Spree::Calculator", :as => :calculable, :dependent => :destroy
-
     accepts_nested_attributes_for :calculator
-
     validates :calculator, :presence => true
 
-    scope :active, -> { where(enabled: true).where('(start_at <= ? OR start_at IS NULL) AND (end_at >= ? OR end_at IS NULL)', Time.now, Time.now) }
+    after_save :refresh_product_document
+
+    #attr_accessible :value, :start_at, :end_at, :enabled
+
+    scope :active, lambda {
+      where("enabled = 't' AND (start_at <= ? OR start_at IS NULL) AND (end_at >= ? OR end_at IS NULL)", Time.now, Time.now)
+    }
 
     # TODO make this work or remove it
     #def self.calculators
@@ -18,6 +21,11 @@ module Spree
 
     def calculator_type
       calculator.class.to_s if calculator
+    end
+
+    def calculator_type=(calculator_type)
+      clazz = calculator_type.constantize if calculator_type
+      self.calculator = clazz.new if clazz and not self.calculator.is_a? clazz
     end
 
     def price
@@ -43,9 +51,11 @@ module Spree
       update_attributes({ end_at: Time.now, enabled: false })
     end
 
-    # Convenience method for displaying the price of a given sale_price in the table
-    def display_price
-      Spree::Money.new(value, {currency: Spree::Config[:currency]})
+
+    def refresh_product_document
+      _price = Spree::Price.where(id: self.price_id).first
+      _price.variant.product.save unless _price.nil?
     end
+
   end
 end
